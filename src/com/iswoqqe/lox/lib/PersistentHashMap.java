@@ -14,11 +14,11 @@ public class PersistentHashMap<K, V> {
     }
 
     @SuppressWarnings("unchecked")
-    V get(K key) {
+    public V get(K key) {
         return (V) root.find(0, key.hashCode(), key);
     }
 
-    PersistentHashMap<K, V> with(K key, V val) {
+    public PersistentHashMap<K, V> with(K key, V val) {
         return new PersistentHashMap<>(root.assoc(0, key.hashCode(), key, val));
     }
 
