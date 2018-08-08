@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.Random;
 
+import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -22,6 +23,15 @@ public class PersistentHashMapTest {
         assertNull(map1.get(2));
         assertNull(map2.get(2));
         assertEquals('b', map3.get(2));
+
+        assertTrue(map3.hasKey(1));
+        assertTrue(map3.hasKey(2));
+
+        assertTrue(map2.hasKey(1));
+        assertTrue(!map2.hasKey(2));
+
+        assertTrue(!map1.hasKey(1));
+        assertTrue(!map1.hasKey(2));
     }
 
     @Test
@@ -37,6 +47,7 @@ public class PersistentHashMapTest {
                     map = map.with(i, 'a');
                     assertEquals(map.get(i), 'a');
                 }
+                assertTrue(map.hasKey(i));
             }
         }
     }
@@ -89,6 +100,8 @@ public class PersistentHashMapTest {
 
             map = map.with(k, v);
 
+            assertTrue(map.hasKey(k));
+
             if (!v.equals(map.get(k))) {
                 fail("Expected: map.get(" + k + ") == " + v + ", not " + map.get(k) + "    " + i + " iterations");
             }
@@ -102,6 +115,9 @@ public class PersistentHashMapTest {
         map = map.with(new CollisionClass(321), 'b');
         assertEquals('a', map.get(new CollisionClass(123)));
         assertEquals('b', map.get(new CollisionClass(321)));
+
+        assertTrue(map.hasKey(new CollisionClass(123)));
+        assertTrue(map.hasKey(new CollisionClass(321)));
     }
 
     @Test
