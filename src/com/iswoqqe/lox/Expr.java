@@ -5,7 +5,7 @@ abstract class Expr {
         T visitBinaryExpr(Binary binary);
         T visitGroupingExpr(Grouping grouping);
         T visitLiteralExpr(Literal literal);
-        T visitTenaryExpr(Tenary tenary);
+        T visitTernaryExpr(Ternary ternary);
         T visitUnaryExpr(Unary unary);
     }
 
@@ -54,12 +54,12 @@ abstract class Expr {
         }
     }
 
-    static class Tenary extends Expr {
+    static class Ternary extends Expr {
         final Expr condition;
         final Expr trueBranch;
         final Expr falseBranch;
 
-        Tenary(Expr condition, Expr trueBranch, Expr falseBranch) {
+        Ternary(Expr condition, Expr trueBranch, Expr falseBranch) {
             this.condition = condition;
             this.trueBranch = trueBranch;
             this.falseBranch = falseBranch;
@@ -67,7 +67,7 @@ abstract class Expr {
 
         @Override
         <T> T accept(Visitor<T> visitor) {
-            return visitor.visitTenaryExpr(this);
+            return visitor.visitTernaryExpr(this);
         }
     }
 

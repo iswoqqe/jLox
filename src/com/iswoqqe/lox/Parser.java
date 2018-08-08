@@ -25,7 +25,7 @@ class Parser {
     }
 
     private Expr comma() {
-        Expr expr = tenary();
+        Expr expr = ternary();
 
         while (match(TokenType.COMMA)) {
             Token operator = previous();
@@ -36,14 +36,14 @@ class Parser {
         return expr;
     }
 
-    private Expr tenary() {
+    private Expr ternary() {
         Expr expr = equality();
 
         if (match(TokenType.QUESTION)) {
-            Expr trueBranch = tenary();
-            consume(TokenType.COLON, "Missing ':' in tenary expression");
-            Expr falseBranch = tenary();
-            expr = new Expr.Tenary(expr, trueBranch, falseBranch);
+            Expr trueBranch = ternary();
+            consume(TokenType.COLON, "Missing ':' in ternary expression");
+            Expr falseBranch = ternary();
+            expr = new Expr.Ternary(expr, trueBranch, falseBranch);
         }
 
         return expr;

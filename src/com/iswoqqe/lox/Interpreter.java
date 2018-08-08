@@ -67,13 +67,13 @@ public class Interpreter implements Expr.Visitor<Object> {
     }
 
     @Override
-    public Object visitTenaryExpr(Expr.Tenary tenary) {
-        Object condition = evaluate(tenary.condition);
+    public Object visitTernaryExpr(Expr.Ternary ternary) {
+        Object condition = evaluate(ternary.condition);
 
         if (isTruthy(condition)) {
-            return evaluate(tenary.trueBranch);
+            return evaluate(ternary.trueBranch);
         } else {
-            return evaluate(tenary.falseBranch);
+            return evaluate(ternary.falseBranch);
         }
     }
 
