@@ -4,6 +4,7 @@ import java.util.Stack;
 
 public class PersistentHashMap<K, V> {
     private final INode root;
+    private static final Object NOT_FOUND = new Object();
 
     public PersistentHashMap() {
         this.root = ArrayNode.EMPTY;
@@ -15,7 +16,18 @@ public class PersistentHashMap<K, V> {
 
     @SuppressWarnings("unchecked")
     public V get(K key) {
-        return (V) root.find(0, key.hashCode(), key);
+        Object o = root.find(0, key.hashCode(), key);
+        return o.equals(NOT_FOUND) ? null : (V) o;
+    }
+
+    @SuppressWarnings("unchecked")
+    public V get(K key, V notFound) {
+        Object o = root.find(0, key.hashCode(), key);
+        return o.equals(NOT_FOUND) ? notFound : (V) o;
+    }
+
+    public boolean hasKey(K key) {
+        return ! root.find(0, key.hashCode(), key).equals(NOT_FOUND);
     }
 
     public PersistentHashMap<K, V> with(K key, V val) {
@@ -61,7 +73,7 @@ public class PersistentHashMap<K, V> {
             if (this.key.equals(key)) {
                 return this.val;
             }
-            return null;
+            return NOT_FOUND;
         }
     }
 
@@ -160,7 +172,7 @@ public class PersistentHashMap<K, V> {
                     return valOrNode;
                 }
             }
-            return null;
+            return NOT_FOUND;
         }
 
         private int getBit(int shift, int hash) {
@@ -200,7 +212,7 @@ public class PersistentHashMap<K, V> {
             INode node = array[idx];
 
             if (node == null) {
-                return null;
+                return NOT_FOUND;
             }
 
             return node.find(shift + 5, hash, key);
@@ -246,7 +258,7 @@ public class PersistentHashMap<K, V> {
             if (idx != -1) {
                 return array[idx + 1];
             }
-            return null;
+            return NOT_FOUND;
         }
 
         private int findIndex(Object key) {
@@ -323,7 +335,7 @@ public class PersistentHashMap<K, V> {
                 }
                 node = node.next;
             }
-            return null;
+            return NOT_FOUND;
         }
     }
 
