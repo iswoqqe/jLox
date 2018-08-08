@@ -5,7 +5,7 @@ import java.util.Stack;
 public class PersistentHashMap<K, V> {
     private final INode root;
 
-    PersistentHashMap() {
+    public PersistentHashMap() {
         this.root = ArrayNode.EMPTY;
     }
 
