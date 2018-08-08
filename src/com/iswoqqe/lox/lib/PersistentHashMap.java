@@ -27,7 +27,7 @@ public class PersistentHashMap<K, V> {
     }
 
     public boolean hasKey(K key) {
-        return ! root.find(0, key.hashCode(), key).equals(NOT_FOUND);
+        return ! NOT_FOUND.equals(root.find(0, key.hashCode(), key));
     }
 
     public PersistentHashMap<K, V> with(K key, V val) {
