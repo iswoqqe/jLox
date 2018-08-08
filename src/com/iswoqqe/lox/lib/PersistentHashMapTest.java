@@ -25,6 +25,23 @@ public class PersistentHashMapTest {
     }
 
     @Test
+    public void testNullVal() {
+        PersistentHashMap<Integer, Object> map = new PersistentHashMap<>();
+
+        for (int iter = 0; iter < 2; ++iter) {
+            for (int i = 0; i < 1000; ++i) {
+                if ((i & 1) == 1) {
+                    map = map.with(i, null);
+                    assertNull(map.get(i, "notnull"));
+                } else {
+                    map = map.with(i, 'a');
+                    assertEquals(map.get(i), 'a');
+                }
+            }
+        }
+    }
+
+    @Test
     public void gettingOldValues() {
         PersistentHashMap<Integer, Object> map0 = new PersistentHashMap<>();
         PersistentHashMap<Integer, Object> map1 = map0.with(1, 'a');

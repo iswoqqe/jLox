@@ -17,13 +17,13 @@ public class PersistentHashMap<K, V> {
     @SuppressWarnings("unchecked")
     public V get(K key) {
         Object o = root.find(0, key.hashCode(), key);
-        return o.equals(NOT_FOUND) ? null : (V) o;
+        return NOT_FOUND.equals(o) ? null : (V) o;
     }
 
     @SuppressWarnings("unchecked")
     public V get(K key, V notFound) {
         Object o = root.find(0, key.hashCode(), key);
-        return o.equals(NOT_FOUND) ? notFound : (V) o;
+        return NOT_FOUND.equals(o) ? notFound : (V) o;
     }
 
     public boolean hasKey(K key) {
@@ -103,7 +103,7 @@ public class PersistentHashMap<K, V> {
                 } else {
                     // create child-node, IndexedNode or CollisionNode
                     if (key.equals(keyOrNull)) {
-                        if (val.equals(valOrNode)) {
+                        if (nullSafeEquals(val, valOrNode)) {
                             return this;
                         }
                         return new IndexedNode(mask, cloneAndSet(array, 2*idx + 1, val));
@@ -341,6 +341,13 @@ public class PersistentHashMap<K, V> {
 
     private static int arrayNodeIdx(int shift, int hash) {
         return (hash >>> shift) & 0x1f;
+    }
+
+    private static boolean nullSafeEquals(Object a, Object b) {
+        if (a == null) {
+            return b == null;
+        }
+        return a.equals(b);
     }
 
     private static Object[] cloneAndSet(Object[] array, int idx1, Object val1, int idx2, Object val2) {
