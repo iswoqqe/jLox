@@ -2,7 +2,7 @@ package com.iswoqqe.lox.lib;
 
 import java.util.Stack;
 
-class PersistentHashMap<K, V> {
+public class PersistentHashMap<K, V> {
     private final INode root;
 
     PersistentHashMap() {

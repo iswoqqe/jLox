@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class PersistentHashMapBenchmark {
+class PersistentHashMapBenchmark {
     static private PersistentHashMap<Object, Object> phmap = new PersistentHashMap<>();
     static private Map<Object, Object> hmap = new HashMap<>();
 
