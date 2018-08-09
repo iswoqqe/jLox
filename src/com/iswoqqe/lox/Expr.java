@@ -2,13 +2,13 @@ package com.iswoqqe.lox;
 
 abstract class Expr {
     interface Visitor<T> {
-        T visitBinaryExpr(Binary binary);
-        T visitGroupingExpr(Grouping grouping);
-        T visitLiteralExpr(Literal literal);
-        T visitTernaryExpr(Ternary ternary);
-        T visitUnaryExpr(Unary unary);
-        T visitVarExpr(Var var);
-        T visitAssignExpr(Assign assign);
+        T visitBinaryExpr(Binary expr);
+        T visitGroupingExpr(Grouping expr);
+        T visitLiteralExpr(Literal expr);
+        T visitTernaryExpr(Ternary expr);
+        T visitUnaryExpr(Unary expr);
+        T visitVarExpr(Var expr);
+        T visitAssignExpr(Assign expr);
     }
 
     abstract <T> T accept(Visitor<T> visitor);

@@ -16,11 +16,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Void visitBlockStmt(Stmt.Block block) {
+    public Void visitBlockStmt(Stmt.Block stmt) {
         enviroment.pushScope();
 
         try {
-            for (Stmt statement : block.statements) {
+            for (Stmt statement : stmt.statements) {
                 execute(statement);
             }
         } finally {
@@ -31,56 +31,56 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Void visitVarStmt(Stmt.Var var) {
+    public Void visitVarStmt(Stmt.Var stmt) {
         /*if (enviroment.isDefined(var.name)) {
             throw new RuntimeError(var.name, "Redefinition of vars not allowed.");
         }*/
-        enviroment.define(var.name, evaluate(var.initializer));
+        enviroment.define(stmt.name, evaluate(stmt.initializer));
         return null;
     }
 
     @Override
-    public Void visitExpressionStmt(Stmt.Expression expression) {
-        evaluate(expression.expression);
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
         return null;
     }
 
     @Override
-    public Void visitPrintStmt(Stmt.Print print) {
-        Object val = evaluate(print.expression);
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object val = evaluate(stmt.expression);
         System.out.println(stringify(val));
         return null;
     }
 
     @Override
-    public Object visitAssignExpr(Expr.Assign assign) {
-        Object val = evaluate(assign.value);
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object val = evaluate(expr.value);
 
-        enviroment.assign(assign.name, val);
+        enviroment.assign(expr.name, val);
         return null;
     }
 
     @Override
-    public Object visitVarExpr(Expr.Var var) {
-        return enviroment.get(var.name);
+    public Object visitVarExpr(Expr.Var expr) {
+        return enviroment.get(expr.name);
     }
 
     @Override
-    public Object visitBinaryExpr(Expr.Binary binary) {
-        Object left = evaluate(binary.left);
-        Object right = evaluate(binary.right);
+    public Object visitBinaryExpr(Expr.Binary expr) {
+        Object left = evaluate(expr.left);
+        Object right = evaluate(expr.right);
 
-        switch (binary.operator.type) {
+        switch (expr.operator.type) {
             case COMMA:
                 return right;
             case MINUS:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double) left - (double) right;
             case STAR:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double) left * (double) right;
             case SLASH:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double) left / (double) right;
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
@@ -89,18 +89,18 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 if (left instanceof String && right instanceof String) {
                     return (String) left + right;
                 }
-                throw new RuntimeError(binary.operator, "Operands must be numbers or strings.");
+                throw new RuntimeError(expr.operator, "Operands must be numbers or strings.");
             case GREATER:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double)left > (double)right;
             case GREATER_EQUAL:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double)left >= (double)right;
             case LESS:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double)left < (double)right;
             case LESS_EQUAL:
-                checkNumbers(binary.operator, left, right);
+                checkNumbers(expr.operator, left, right);
                 return (double)left <= (double)right;
             case BANG_EQUAL:
                 return !isEqual(left, right);
@@ -112,36 +112,36 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Object visitGroupingExpr(Expr.Grouping grouping) {
-        return evaluate(grouping.expression);
+    public Object visitGroupingExpr(Expr.Grouping expr) {
+        return evaluate(expr.expression);
     }
 
     @Override
-    public Object visitLiteralExpr(Expr.Literal literal) {
-        return literal.value;
+    public Object visitLiteralExpr(Expr.Literal expr) {
+        return expr.value;
     }
 
     @Override
-    public Object visitTernaryExpr(Expr.Ternary ternary) {
-        Object condition = evaluate(ternary.condition);
+    public Object visitTernaryExpr(Expr.Ternary expr) {
+        Object condition = evaluate(expr.condition);
 
         if (isTruthy(condition)) {
-            return evaluate(ternary.trueBranch);
+            return evaluate(expr.trueBranch);
         } else {
-            return evaluate(ternary.falseBranch);
+            return evaluate(expr.falseBranch);
         }
     }
 
     @Override
-    public Object visitUnaryExpr(Expr.Unary unary) {
-        Object right = evaluate(unary.right);
+    public Object visitUnaryExpr(Expr.Unary expr) {
+        Object right = evaluate(expr.right);
 
-        switch(unary.operator.type) {
+        switch(expr.operator.type) {
             case MINUS:
-                checkNumber(unary.operator, right);
+                checkNumber(expr.operator, right);
                 return -(double) right;
             case BANG:
-                checkNumber(unary.operator, right);
+                checkNumber(expr.operator, right);
                 return !isTruthy(right);
         }
 

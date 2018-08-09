@@ -4,10 +4,10 @@ import java.util.List;
 
 abstract class Stmt {
     interface Visitor<T> {
-        T visitExpressionStmt(Expression expression);
-        T visitPrintStmt(Print print);
-        T visitVarStmt(Var var);
-        T visitBlockStmt(Block block);
+        T visitExpressionStmt(Expression stmt);
+        T visitPrintStmt(Print stmt);
+        T visitVarStmt(Var stmt);
+        T visitBlockStmt(Block stmt);
     }
 
     abstract <T> T accept(Visitor<T> visitor);
