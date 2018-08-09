@@ -1,13 +1,68 @@
 package com.iswoqqe.lox;
 
-public class Interpreter implements Expr.Visitor<Object> {
-    void interpret(Expr expr) {
+import java.util.List;
+
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    private Enviroment enviroment = new Enviroment();
+
+    void interpret(List<Stmt> statements) {
         try {
-            Object val = evaluate(expr);
-            System.out.println(stringify(val));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
+    }
+
+    @Override
+    public Void visitBlockStmt(Stmt.Block block) {
+        enviroment.pushScope();
+
+        try {
+            for (Stmt statement : block.statements) {
+                execute(statement);
+            }
+        } finally {
+            enviroment.popScope();
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var var) {
+        /*if (enviroment.isDefined(var.name)) {
+            throw new RuntimeError(var.name, "Redefinition of vars not allowed.");
+        }*/
+        enviroment.define(var.name, evaluate(var.initializer));
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression expression) {
+        evaluate(expression.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print print) {
+        Object val = evaluate(print.expression);
+        System.out.println(stringify(val));
+        return null;
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign assign) {
+        Object val = evaluate(assign.value);
+
+        enviroment.assign(assign.name, val);
+        return null;
+    }
+
+    @Override
+    public Object visitVarExpr(Expr.Var var) {
+        return enviroment.get(var.name);
     }
 
     @Override
@@ -32,7 +87,7 @@ public class Interpreter implements Expr.Visitor<Object> {
                     return (double) left + (double) right;
                 }
                 if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
+                    return (String) left + right;
                 }
                 throw new RuntimeError(binary.operator, "Operands must be numbers or strings.");
             case GREATER:
@@ -91,6 +146,10 @@ public class Interpreter implements Expr.Visitor<Object> {
         }
 
         return null;
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
     }
 
     private Object evaluate(Expr expr) {

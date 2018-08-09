@@ -7,6 +7,8 @@ abstract class Expr {
         T visitLiteralExpr(Literal literal);
         T visitTernaryExpr(Ternary ternary);
         T visitUnaryExpr(Unary unary);
+        T visitVarExpr(Var var);
+        T visitAssignExpr(Assign assign);
     }
 
     abstract <T> T accept(Visitor<T> visitor);
@@ -83,6 +85,34 @@ abstract class Expr {
         @Override
         <T> T accept(Visitor<T> visitor) {
             return visitor.visitUnaryExpr(this);
+        }
+    }
+
+    static class Var extends Expr {
+        final Token name;
+
+        Var(Token name) {
+            this.name = name;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitVarExpr(this);
+        }
+    }
+
+    static class Assign extends Expr {
+        final Token name;
+        final Expr value;
+
+        Assign(Token name, Expr value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitAssignExpr(this);
         }
     }
 }

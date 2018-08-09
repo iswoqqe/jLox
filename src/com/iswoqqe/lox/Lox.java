@@ -20,7 +20,7 @@ public class Lox {
         } else if (args.length == 1) {
             runFile(args[0]);
         } else {
-            runPromt();
+            runPrompt();
         }
     }
 
@@ -36,14 +36,14 @@ public class Lox {
         }
     }
 
-    private static void runPromt() throws IOException {
+    private static void runPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
         while (true) {
-            String buffer;
+            StringBuilder builder = new StringBuilder();
 
-            /*while (true) {
+            while (true) {
                 System.out.print("> ");
                 String tmp = reader.readLine();
 
@@ -51,11 +51,12 @@ public class Lox {
                     break;
                 }
 
-                buffer += tmp + "\n";
-            }*/
-            System.out.print("> ");
-            buffer = reader.readLine();
-            run(buffer);
+                builder.append(tmp);
+                builder.append('\n');
+            }
+            //System.out.print("> ");
+            //run(reader.readLine());
+            run(builder.toString());
             hadError = false;
         }
     }
@@ -70,7 +71,7 @@ public class Lox {
         }
 
         Parser parser = new Parser(tokens);
-        Expr expr = parser.parse();
+        List<Stmt> statements = parser.parse();
 
         if (hadError) {
             System.out.println("Parse error.");
@@ -78,9 +79,11 @@ public class Lox {
         }
 
         ASTPrinter printer = new ASTPrinter();
-        System.out.println(printer.getString(expr));
+        for (Stmt stmt : statements) {
+            System.out.println(printer.getString(stmt));
+        }
 
-        interpreter.interpret(expr);
+        interpreter.interpret(statements);
     }
 
     static void runtimeError(RuntimeError error) {

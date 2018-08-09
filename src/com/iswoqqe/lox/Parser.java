@@ -1,9 +1,11 @@
 package com.iswoqqe.lox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 class Parser {
     private static class ParseError extends RuntimeException {}
+    private boolean parsingVars = false;
 
     private final List<Token> tokens;
     private int current = 0;
@@ -12,12 +14,83 @@ class Parser {
         this.tokens = tokens;
     }
 
-    Expr parse() {
+    List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(declaration());
+        }
+        return statements;
+    }
+
+    /*Expr parse() {
         try {
             return expression();
         } catch (ParseError error) {
             return null;
         }
+    }*/
+
+    private Stmt declaration() {
+        try {
+            if (parsingVars || match(TokenType.VAR)) {
+                parsingVars = true;
+                return varDeclaration();
+            }
+            return statement();
+        } catch (ParseError e) {
+            parsingVars = false;
+            synchronize();
+            return null;
+        }
+    }
+
+    private Stmt varDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expected variable name.");
+        Expr initializer = new Expr.Literal(null);
+
+        if (match(TokenType.EQUAL)) {
+            initializer = expression();
+        }
+
+        if (!match(TokenType.COMMA)) {
+            consume(TokenType.SEMICOLON, "Expected ';' after var statement");
+            parsingVars = false;
+        }
+
+        return new Stmt.Var(name, initializer);
+    }
+
+    private Stmt statement() {
+        if (match(TokenType.PRINT)) {
+            return printStmt();
+        }
+        if (match(TokenType.LEFT_BRACE)) {
+            return blockStmt();
+        }
+        return expressionStmt();
+    }
+
+    private Stmt blockStmt() {
+        List<Stmt> statements = new ArrayList<>();
+
+        while (!isAtEnd() && !check(TokenType.RIGHT_BRACE)) {
+            statements.add(declaration());
+        }
+
+        consume(TokenType.RIGHT_BRACE, "Expected matching '}' after '{'.");
+        return new Stmt.Block(statements);
+    }
+
+    private Stmt printStmt() {
+        Expr value = expression();
+        consume(TokenType.SEMICOLON, "Expected ';' after expression in print statement.");
+        return new Stmt.Print(value);
+    }
+
+    private Stmt expressionStmt() {
+        Expr expr = expression();
+        consume(TokenType.SEMICOLON, "Expected ';' after expression.");
+        return new Stmt.Expression(expr);
     }
 
     private Expr expression() {
@@ -25,12 +98,34 @@ class Parser {
     }
 
     private Expr comma() {
-        Expr expr = ternary();
+        Expr expr = assignment();
+
+        if (parsingVars) {
+            return expr;
+        }
 
         while (match(TokenType.COMMA)) {
             Token operator = previous();
             Expr right = comma();
             expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr assignment() {
+        Expr expr = ternary();
+
+        if (match(TokenType.EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Var) {
+                Token name = ((Expr.Var) expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
         }
 
         return expr;
@@ -122,6 +217,10 @@ class Parser {
             return new Expr.Grouping(expr);
         }
 
+        if (match(TokenType.IDENTIFIER)) {
+            return new Expr.Var(previous());
+        }
+
         if (match(TokenType.COMMA, TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL, TokenType.LESS, TokenType.GREATER,
                 TokenType.LESS_EQUAL, TokenType.GREATER_EQUAL, TokenType.PLUS, TokenType.STAR, TokenType.SLASH)) {
             ParseError err = error(previous(), "Binary operator at start of expression.");
@@ -133,6 +232,10 @@ class Parser {
     }
 
     private void synchronize() {
+        if (isAtEnd()) {
+            return;
+        }
+
         advance();
 
         while (!isAtEnd()) {
