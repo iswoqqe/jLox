@@ -24,7 +24,7 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitVarStmt(Stmt.Var stmt) {
-        return parenthesize("def " + stmt.name.lexeme, stmt.initializer);
+        return parenthesize("def", stmt.name.lexeme, stmt.initializer);
     }
 
     @Override
@@ -39,7 +39,7 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitAssignExpr(Expr.Assign expr) {
-        return parenthesize("redef " + expr.name.lexeme, expr.value);
+        return parenthesize("redef", expr.name.lexeme, expr.value);
     }
 
     @Override
@@ -71,22 +71,32 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
-    public String visitTernaryExpr(Expr.Ternary tenary) {
-        return parenthesize("ternary", tenary.condition, tenary.trueBranch, tenary.falseBranch);
+    public String visitTernaryExpr(Expr.Ternary expr) {
+        return parenthesize("ternary", expr.condition, expr.trueBranch, expr.falseBranch);
     }
 
-    private String parenthesize(String fname, Expr ...args) {
+    private String parenthesize(Object ...args) {
         StringBuilder builder = new StringBuilder();
+        builder.append('(');
+        builder.append(asString(args[0]));
 
-        builder.append("(").append(fname);
-
-        for (Expr expr : args) {
+        for (int i = 1; i < args.length; ++i) {
             builder.append(" ");
-            builder.append(expr.accept(this));
+            builder.append(asString(args[i]));
         }
 
         builder.append(")");
 
         return builder.toString();
+    }
+
+    private String asString(Object obj) {
+        if (obj instanceof Expr) {
+            return ((Expr) obj).accept(this);
+        }
+        if (obj instanceof Stmt) {
+            return ((Stmt) obj).accept(this);
+        }
+        return obj.toString();
     }
 }
