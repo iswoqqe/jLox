@@ -8,6 +8,8 @@ abstract class Stmt {
         T visitPrintStmt(Print stmt);
         T visitVarStmt(Var stmt);
         T visitBlockStmt(Block stmt);
+        T visitIfStmt(If stmt);
+        T visitWhileStmt(While stmt);
     }
 
     abstract <T> T accept(Visitor<T> visitor);
@@ -63,6 +65,38 @@ abstract class Stmt {
         @Override
         <T> T accept(Visitor<T> visitor) {
             return visitor.visitBlockStmt(this);
+        }
+    }
+
+    static class If extends Stmt {
+        final Expr condition;
+        final Stmt thenBranch;
+        final Stmt elseBranch;
+
+        If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
+            this.condition = condition;
+            this.thenBranch = thenBranch;
+            this.elseBranch = elseBranch;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitIfStmt(this);
+        }
+    }
+
+    static class While extends Stmt {
+        final Expr condition;
+        final Stmt statement;
+
+        While(Expr condition, Stmt statement) {
+            this.condition = condition;
+            this.statement = statement;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitWhileStmt(this);
         }
     }
 }

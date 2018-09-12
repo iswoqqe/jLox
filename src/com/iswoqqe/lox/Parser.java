@@ -1,6 +1,7 @@
 package com.iswoqqe.lox;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 class Parser {
@@ -67,7 +68,85 @@ class Parser {
         if (match(TokenType.LEFT_BRACE)) {
             return blockStmt();
         }
+        if (match(TokenType.IF)) {
+            return ifStmt();
+        }
+        if (match(TokenType.WHILE)) {
+            return whileStmt();
+        }
+        if (match(TokenType.FOR)) {
+            return forStmt();
+        }
         return expressionStmt();
+    }
+
+    private Stmt forStmt() {
+        consume(TokenType.LEFT_PAREN, "Expected '(' after 'for'.");
+
+        Stmt initializer;
+        if (match(TokenType.SEMICOLON)) {
+            initializer = null;
+        } else if (match(TokenType.VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStmt();
+        }
+
+        Expr condition = null;
+        if (!check(TokenType.SEMICOLON)) {
+            condition = expression();
+        }
+
+        consume(TokenType.SEMICOLON, "Expected ';' after for loop condition.");
+
+        Expr increment = null;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            increment = expression();
+        }
+
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after for for clause.");
+
+        Stmt body = statement();
+
+        if (increment != null) {
+            body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
+        }
+
+        if (condition == null) {
+            condition = new Expr.Literal(true);
+        }
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
+    }
+
+    private Stmt whileStmt() {
+        consume(TokenType.LEFT_PAREN, "Expected '(' after 'while'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after while statement condition.");
+
+        Stmt statement = statement();
+
+        return new Stmt.While(condition, statement);
+    }
+
+    private Stmt ifStmt() {
+        consume(TokenType.LEFT_PAREN, "Expected '(' after 'if'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after if statement condition.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+
+        if (match(TokenType.ELSE)) {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt blockStmt() {
@@ -132,13 +211,35 @@ class Parser {
     }
 
     private Expr ternary() {
-        Expr expr = equality();
+        Expr expr = or();
 
         if (match(TokenType.QUESTION)) {
             Expr trueBranch = ternary();
             consume(TokenType.COLON, "Missing ':' in ternary expression");
             Expr falseBranch = ternary();
             expr = new Expr.Ternary(expr, trueBranch, falseBranch);
+        }
+
+        return expr;
+    }
+
+    private Expr or() {
+        Expr expr = and();
+
+        while (match(TokenType.OR)) {
+            Expr right = or();
+            expr = new Expr.Or(expr, right);
+        }
+
+        return expr;
+    }
+
+    private Expr and() {
+        Expr expr = equality();
+
+        while (match(TokenType.AND)) {
+            Expr right = and();
+            expr = new Expr.And(expr, right);
         }
 
         return expr;

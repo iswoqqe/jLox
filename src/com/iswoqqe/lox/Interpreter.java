@@ -3,7 +3,7 @@ package com.iswoqqe.lox;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    private Enviroment enviroment = new Enviroment();
+    private Environment environment = new Environment();
 
     void interpret(List<Stmt> statements) {
         try {
@@ -16,15 +16,37 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        while (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.statement);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        if (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.thenBranch);
+        } else {
+            execute(stmt.elseBranch);
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
-        enviroment.pushScope();
+        Environment previous = this.environment;
 
         try {
+            this.environment = new Environment(previous);
+
             for (Stmt statement : stmt.statements) {
                 execute(statement);
             }
         } finally {
-            enviroment.popScope();
+            this.environment = previous;
         }
 
         return null;
@@ -35,7 +57,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         /*if (enviroment.isDefined(var.name)) {
             throw new RuntimeError(var.name, "Redefinition of vars not allowed.");
         }*/
-        enviroment.define(stmt.name, evaluate(stmt.initializer));
+        environment.define(stmt.name, evaluate(stmt.initializer));
         return null;
     }
 
@@ -53,16 +75,38 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitOrExpr(Expr.Or expr) {
+        Object val = evaluate(expr.left);
+
+        if (isTruthy(val)) {
+            return val;
+        }
+
+        return evaluate(expr.right);
+    }
+
+    @Override
+    public Object visitAndExpr(Expr.And expr) {
+        Object val = evaluate(expr.left);
+
+        if (!isTruthy(val)) {
+            return val;
+        }
+
+        return evaluate(expr.right);
+    }
+
+    @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object val = evaluate(expr.value);
 
-        enviroment.assign(expr.name, val);
+        environment.assign(expr.name, val);
         return null;
     }
 
     @Override
     public Object visitVarExpr(Expr.Var expr) {
-        return enviroment.get(expr.name);
+        return environment.get(expr.name);
     }
 
     @Override

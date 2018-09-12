@@ -10,6 +10,16 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitWhileStmt(Stmt.While stmt) {
+        return parenthesize("while", stmt.condition, stmt.statement);
+    }
+
+    @Override
+    public String visitIfStmt(Stmt.If stmt) {
+        return parenthesize("if", stmt.condition, stmt.thenBranch, stmt.elseBranch);
+    }
+
+    @Override
     public String visitBlockStmt(Stmt.Block stmt) {
         StringBuilder builder = new StringBuilder();
         builder.append("(block");
@@ -35,6 +45,16 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitPrintStmt(Stmt.Print stmt) {
         return parenthesize("print", stmt.expression);
+    }
+
+    @Override
+    public String visitOrExpr(Expr.Or expr) {
+        return parenthesize("or", expr.left, expr.right);
+    }
+
+    @Override
+    public String visitAndExpr(Expr.And expr) {
+        return parenthesize("and", expr.left, expr.right);
     }
 
     @Override
@@ -96,6 +116,9 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         }
         if (obj instanceof Stmt) {
             return ((Stmt) obj).accept(this);
+        }
+        if (obj == null) {
+            return "nil";
         }
         return obj.toString();
     }

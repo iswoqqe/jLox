@@ -9,6 +9,8 @@ abstract class Expr {
         T visitUnaryExpr(Unary expr);
         T visitVarExpr(Var expr);
         T visitAssignExpr(Assign expr);
+        T visitOrExpr(Or expr);
+        T visitAndExpr(And expr);
     }
 
     abstract <T> T accept(Visitor<T> visitor);
@@ -113,6 +115,36 @@ abstract class Expr {
         @Override
         <T> T accept(Visitor<T> visitor) {
             return visitor.visitAssignExpr(this);
+        }
+    }
+
+    static class Or extends Expr {
+        final Expr left;
+        final Expr right;
+
+        Or(Expr left, Expr right) {
+            this.left = left;
+            this.right = right;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitOrExpr(this);
+        }
+    }
+
+    static class And extends Expr {
+        final Expr left;
+        final Expr right;
+
+        And(Expr left, Expr right) {
+            this.left = left;
+            this.right = right;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitAndExpr(this);
         }
     }
 }
