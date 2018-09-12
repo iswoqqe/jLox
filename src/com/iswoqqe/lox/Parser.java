@@ -18,7 +18,11 @@ class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(declaration());
+            if (parsingVars) {
+                statements.add(varDeclaration());
+            } else {
+                statements.add(declaration());
+            }
         }
         return statements;
     }
@@ -33,7 +37,7 @@ class Parser {
 
     private Stmt declaration() {
         try {
-            if (parsingVars || match(TokenType.VAR)) {
+            if (match(TokenType.VAR)) {
                 parsingVars = true;
                 return varDeclaration();
             }
@@ -301,6 +305,14 @@ class Parser {
         }
 
         return primary();
+    }
+
+    private Expr call() {
+        Expr expr = primary();
+
+        while (match(TokenType.LEFT_PAREN)) {
+            parsingVars = true;
+        }
     }
 
     private Expr primary() {
