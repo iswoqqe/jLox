@@ -7,6 +7,7 @@ import java.util.List;
 class Parser {
     private static class ParseError extends RuntimeException {}
     private boolean parsingVars = false;
+    private boolean commaOpDisabled = false;
 
     private final List<Token> tokens;
     private int current = 0;
@@ -18,11 +19,7 @@ class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            if (parsingVars) {
-                statements.add(varDeclaration());
-            } else {
-                statements.add(declaration());
-            }
+            statements.add(declaration());
         }
         return statements;
     }
@@ -37,16 +34,47 @@ class Parser {
 
     private Stmt declaration() {
         try {
-            if (match(TokenType.VAR)) {
+            if (parsingVars || match(TokenType.VAR)) {
                 parsingVars = true;
+                commaOpDisabled = true;
                 return varDeclaration();
+            }
+            if (match(TokenType.FN)) {
+                return funcDeclaration();
             }
             return statement();
         } catch (ParseError e) {
             parsingVars = false;
+            commaOpDisabled = false;
             synchronize();
             return null;
         }
+    }
+
+    private Stmt funcDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expected function name.");
+        consume(TokenType.LEFT_PAREN, "Expected '(' after function name.");
+        List<Token> parameters = new ArrayList<>();
+
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                parameters.add(consume(TokenType.IDENTIFIER,
+                        "Expected parameter name in function declaration."));
+            } while (match(TokenType.COMMA));
+        }
+
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after function parameters.");
+        consume(TokenType.LEFT_BRACE, "Expected '{' before function body.");
+
+        List<Stmt> body = new ArrayList<>();
+
+        while (!check(TokenType.RIGHT_BRACE)) {
+            body.add(declaration());
+        }
+
+        consume(TokenType.RIGHT_BRACE, "Expected '}' after function body.");
+
+        return new Stmt.Function(name, parameters, body);
     }
 
     private Stmt varDeclaration() {
@@ -60,15 +88,16 @@ class Parser {
         if (!match(TokenType.COMMA)) {
             consume(TokenType.SEMICOLON, "Expected ';' after var statement");
             parsingVars = false;
+            commaOpDisabled = false;
         }
 
         return new Stmt.Var(name, initializer);
     }
 
     private Stmt statement() {
-        if (match(TokenType.PRINT)) {
+        /*if (match(TokenType.PRINT)) {
             return printStmt();
-        }
+        }*/
         if (match(TokenType.LEFT_BRACE)) {
             return blockStmt();
         }
@@ -81,7 +110,22 @@ class Parser {
         if (match(TokenType.FOR)) {
             return forStmt();
         }
+        if (match(TokenType.RETURN)) {
+            return returnStmt();
+        }
         return expressionStmt();
+    }
+
+    private Stmt returnStmt() {
+        Token keyword = previous();
+        Expr expression = null;
+
+        if (!check(TokenType.SEMICOLON)) {
+            expression = expression();
+        }
+
+        consume(TokenType.SEMICOLON, "Expected ';' after return statement.");
+        return new Stmt.Return(keyword, expression);
     }
 
     private Stmt forStmt() {
@@ -183,7 +227,7 @@ class Parser {
     private Expr comma() {
         Expr expr = assignment();
 
-        if (parsingVars) {
+        if (commaOpDisabled) {
             return expr;
         }
 
@@ -304,15 +348,32 @@ class Parser {
             return new Expr.Unary(operator, right);
         }
 
-        return primary();
+        return call();
     }
 
     private Expr call() {
         Expr expr = primary();
 
         while (match(TokenType.LEFT_PAREN)) {
-            parsingVars = true;
+            expr = finishCall(expr);
         }
+
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(TokenType.RIGHT_PAREN)) {
+            commaOpDisabled = true;
+            do {
+                arguments.add(expression());
+            } while (match(TokenType.COMMA));
+            commaOpDisabled = false;
+        }
+
+        Token paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+
+        return new Expr.Call(callee, paren, arguments);
     }
 
     private Expr primary() {

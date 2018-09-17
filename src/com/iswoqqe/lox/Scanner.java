@@ -22,11 +22,11 @@ class Scanner {
         keywords.put("else",   TokenType.ELSE);
         keywords.put("false",  TokenType.FALSE);
         keywords.put("for",    TokenType.FOR);
-        keywords.put("fun",    TokenType.FN);
+        keywords.put("fn",    TokenType.FN);
         keywords.put("if",     TokenType.IF);
         keywords.put("nil",    TokenType.NIL);
         keywords.put("or",     TokenType.OR);
-        keywords.put("print",  TokenType.PRINT);
+        //keywords.put("print",  TokenType.PRINT);
         keywords.put("return", TokenType.RETURN);
         keywords.put("super",  TokenType.SUPER);
         keywords.put("this",   TokenType.THIS);

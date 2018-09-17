@@ -15,6 +15,10 @@ class Environment {
         this.previous = previous;
     }
 
+    void define(String name, Object val) {
+        map.put(name, val);
+    }
+
     void define(Token name, Object val) {
         map.put(name.lexeme, val);
     }

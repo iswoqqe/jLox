@@ -10,6 +10,40 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitReturnStmt(Stmt.Return stmt) {
+        return parenthesize("return", stmt.expression);
+    }
+
+    @Override
+    public String visitFunctionStmt(Stmt.Function stmt) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("(fn ");
+        builder.append(stmt.name.lexeme);
+        builder.append(" [");
+
+        boolean first = true;
+
+        for (Token param : stmt.params) {
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(param.lexeme);
+            first = false;
+        }
+
+        builder.append("]");
+
+        for (Stmt s : stmt.body) {
+            builder.append(' ');
+            builder.append(getString(s));
+        }
+
+        builder.append(')');
+
+        return builder.toString();
+    }
+
+    @Override
     public String visitWhileStmt(Stmt.While stmt) {
         return parenthesize("while", stmt.condition, stmt.statement);
     }
@@ -45,6 +79,22 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitPrintStmt(Stmt.Print stmt) {
         return parenthesize("print", stmt.expression);
+    }
+
+    @Override
+    public String visitCallExpr(Expr.Call expr) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("(call ");
+        builder.append(asString(expr.callee));
+
+        for (Expr e : expr.arguments) {
+            builder.append(' ');
+            builder.append(asString(e));
+        }
+
+        builder.append(')');
+
+        return builder.toString();
     }
 
     @Override
@@ -112,10 +162,10 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     private String asString(Object obj) {
         if (obj instanceof Expr) {
-            return ((Expr) obj).accept(this);
+            return getString((Expr) obj);
         }
         if (obj instanceof Stmt) {
-            return ((Stmt) obj).accept(this);
+            return getString((Stmt) obj);
         }
         if (obj == null) {
             return "nil";

@@ -1,9 +1,48 @@
 package com.iswoqqe.lox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    private Environment environment = new Environment();
+    private final Environment builtins = new Environment();
+    private Environment environment = builtins;
+
+    Interpreter() {
+        builtins.define("clock", new Callable() {
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return (double) System.currentTimeMillis() / 1000;
+            }
+
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public String toString() {
+                return "<native fn: clock()>";
+            }
+        });
+
+        builtins.define("print", new Callable() {
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                System.out.println(stringify(arguments.get(0)));
+                return null;
+            }
+
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public String toString() {
+                return "<native fn: print()>";
+            }
+        });
+    }
 
     void interpret(List<Stmt> statements) {
         try {
@@ -13,6 +52,37 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
+    }
+
+    void interpretInEnvironment(List<Stmt> stmt, Environment environment) {
+        Environment previous = this.environment;
+
+        try {
+            this.environment = environment;
+
+            for (Stmt statement : stmt) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
+    }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        Object value = null;
+        if (stmt.expression != null) {
+            value = evaluate(stmt.expression);
+        }
+
+        throw new Return(value);
+    }
+
+    @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        Function function = new Function(stmt, environment);
+        environment.define(stmt.name, function);
+        return null;
     }
 
     @Override
@@ -28,7 +98,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitIfStmt(Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.thenBranch);
-        } else {
+        } else if (stmt.elseBranch != null) {
             execute(stmt.elseBranch);
         }
 
@@ -37,7 +107,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
-        Environment previous = this.environment;
+        Environment environment = new Environment(this.environment);
+        interpretInEnvironment(stmt.statements, environment);
+
+        /*Environment previous = this.environment;
 
         try {
             this.environment = new Environment(previous);
@@ -47,7 +120,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
         } finally {
             this.environment = previous;
-        }
+        }*/
 
         return null;
     }
@@ -72,6 +145,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object val = evaluate(stmt.expression);
         System.out.println(stringify(val));
         return null;
+    }
+
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        Object callee = evaluate(expr.callee);
+
+        if (!(callee instanceof Callable)) {
+            throw new RuntimeError(expr.paren, "Can only call functions.");
+        }
+
+        Callable function = (Callable) callee;
+
+        if (function.arity() != expr.arguments.size()) {
+            throw new RuntimeError(expr.paren,
+                    "Expected " + function.arity() + " arguments but got " + expr.arguments.size() + ".");
+        }
+
+        List<Object> arguments = new ArrayList<>();
+        for (Expr e : expr.arguments) {
+            arguments.add(evaluate(e));
+        }
+
+        return function.call(this, arguments);
     }
 
     @Override
