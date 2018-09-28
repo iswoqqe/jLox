@@ -54,15 +54,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
-    void interpretInEnvironment(List<Stmt> stmt, Environment environment) {
+    void interpretInEnvironment(Stmt stmt, Environment environment) {
         Environment previous = this.environment;
+        this.environment = environment;
 
         try {
-            this.environment = environment;
-
-            for (Stmt statement : stmt) {
-                execute(statement);
-            }
+            execute(stmt);
+        } catch (RuntimeError error) {
+            Lox.runtimeError(error);
         } finally {
             this.environment = previous;
         }
@@ -76,13 +75,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         throw new Return(value);
-    }
-
-    @Override
-    public Void visitFunctionStmt(Stmt.Function stmt) {
-        Function function = new Function(stmt, environment);
-        environment.define(stmt.name, function);
-        return null;
     }
 
     @Override
@@ -107,10 +99,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
-        Environment environment = new Environment(this.environment);
-        interpretInEnvironment(stmt.statements, environment);
-
-        /*Environment previous = this.environment;
+        Environment previous = this.environment;
 
         try {
             this.environment = new Environment(previous);
@@ -120,7 +109,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
         } finally {
             this.environment = previous;
-        }*/
+        }
 
         return null;
     }
@@ -145,6 +134,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object val = evaluate(stmt.expression);
         System.out.println(stringify(val));
         return null;
+    }
+
+    @Override
+    public Object visitFunctionExpr(Expr.Function expr) {
+        return new Function(environment, expr.parameters, expr.body);
     }
 
     @Override

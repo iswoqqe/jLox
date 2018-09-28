@@ -14,34 +14,6 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return parenthesize("return", stmt.expression);
     }
 
-    @Override
-    public String visitFunctionStmt(Stmt.Function stmt) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("(fn ");
-        builder.append(stmt.name.lexeme);
-        builder.append(" [");
-
-        boolean first = true;
-
-        for (Token param : stmt.params) {
-            if (!first) {
-                builder.append(", ");
-            }
-            builder.append(param.lexeme);
-            first = false;
-        }
-
-        builder.append("]");
-
-        for (Stmt s : stmt.body) {
-            builder.append(' ');
-            builder.append(getString(s));
-        }
-
-        builder.append(')');
-
-        return builder.toString();
-    }
 
     @Override
     public String visitWhileStmt(Stmt.While stmt) {
@@ -81,6 +53,28 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return parenthesize("print", stmt.expression);
     }
 
+    @Override
+    public String visitFunctionExpr(Expr.Function expr) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("(fn ");
+        builder.append(" [");
+
+        boolean first = true;
+
+        for (Token param : expr.parameters) {
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(param.lexeme);
+            first = false;
+        }
+
+        builder.append("] ");
+        builder.append(getString(expr.body));
+        builder.append(')');
+
+        return builder.toString();
+    }
     @Override
     public String visitCallExpr(Expr.Call expr) {
         StringBuilder builder = new StringBuilder();

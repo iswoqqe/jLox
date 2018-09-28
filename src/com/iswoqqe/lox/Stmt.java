@@ -10,7 +10,6 @@ abstract class Stmt {
         T visitBlockStmt(Block stmt);
         T visitIfStmt(If stmt);
         T visitWhileStmt(While stmt);
-        T visitFunctionStmt(Function stmt);
         T visitReturnStmt(Return stmt);
     }
 
@@ -102,29 +101,10 @@ abstract class Stmt {
         }
     }
 
-    static class Function extends Stmt {
-        final Token name;
-        final List<Token> params;
-        final List<Stmt> body;
-
-        Function(Token name, List<Token> params, List<Stmt> body) {
-            this.name = name;
-            this.params = params;
-            this.body = body;
-        }
-
-        @Override
-        <T> T accept(Visitor<T> visitor) {
-            return visitor.visitFunctionStmt(this);
-        }
-    }
-
     static class Return extends Stmt {
-        final Token keyword;
         final Expr expression;
 
-        Return(Token keyword, Expr expression) {
-            this.keyword = keyword;
+        Return(Expr expression) {
             this.expression = expression;
         }
 

@@ -24,19 +24,9 @@ class Parser {
         return statements;
     }
 
-    /*Expr parse() {
-        try {
-            return expression();
-        } catch (ParseError error) {
-            return null;
-        }
-    }*/
-
     private Stmt declaration() {
         try {
             if (parsingVars || match(TokenType.VAR)) {
-                parsingVars = true;
-                commaOpDisabled = true;
                 return varDeclaration();
             }
             if (match(TokenType.FN)) {
@@ -52,34 +42,20 @@ class Parser {
     }
 
     private Stmt funcDeclaration() {
-        Token name = consume(TokenType.IDENTIFIER, "Expected function name.");
-        consume(TokenType.LEFT_PAREN, "Expected '(' after function name.");
-        List<Token> parameters = new ArrayList<>();
-
-        if (!check(TokenType.RIGHT_PAREN)) {
-            do {
-                parameters.add(consume(TokenType.IDENTIFIER,
-                        "Expected parameter name in function declaration."));
-            } while (match(TokenType.COMMA));
+        Token name = consume(TokenType.IDENTIFIER, "Expected function name in function declaration.");
+        Expr function = function();
+        if (!(((Expr.Function) function).body instanceof Stmt.Block)) {
+            consume(TokenType.SEMICOLON, "Expected ';' after function expression (comma operator disabled in function expressions).");
         }
-
-        consume(TokenType.RIGHT_PAREN, "Expected ')' after function parameters.");
-        consume(TokenType.LEFT_BRACE, "Expected '{' before function body.");
-
-        List<Stmt> body = new ArrayList<>();
-
-        while (!check(TokenType.RIGHT_BRACE)) {
-            body.add(declaration());
-        }
-
-        consume(TokenType.RIGHT_BRACE, "Expected '}' after function body.");
-
-        return new Stmt.Function(name, parameters, body);
+        return new Stmt.Var(name, function);
     }
 
     private Stmt varDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expected variable name.");
         Expr initializer = new Expr.Literal(null);
+
+        commaOpDisabled = true;
+        parsingVars = false;
 
         if (match(TokenType.EQUAL)) {
             initializer = expression();
@@ -87,10 +63,10 @@ class Parser {
 
         if (!match(TokenType.COMMA)) {
             consume(TokenType.SEMICOLON, "Expected ';' after var statement");
-            parsingVars = false;
             commaOpDisabled = false;
         }
 
+        parsingVars = true;
         return new Stmt.Var(name, initializer);
     }
 
@@ -117,7 +93,6 @@ class Parser {
     }
 
     private Stmt returnStmt() {
-        Token keyword = previous();
         Expr expression = null;
 
         if (!check(TokenType.SEMICOLON)) {
@@ -125,7 +100,7 @@ class Parser {
         }
 
         consume(TokenType.SEMICOLON, "Expected ';' after return statement.");
-        return new Stmt.Return(keyword, expression);
+        return new Stmt.Return(expression);
     }
 
     private Stmt forStmt() {
@@ -221,7 +196,38 @@ class Parser {
     }
 
     private Expr expression() {
+        if (match(TokenType.FN)) {
+            return function();
+        }
         return comma();
+    }
+
+    private Expr function() {
+        consume(TokenType.LEFT_PAREN, "Expected '(' in function expression.");
+        List<Token> parameters = new ArrayList<>();
+
+        commaOpDisabled = true;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                parameters.add(consume(TokenType.IDENTIFIER,
+                        "Expected parameter name in function declaration."));
+            } while (match(TokenType.COMMA));
+        }
+
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after function parameters.");
+
+        Stmt body;
+
+        if (match(TokenType.LEFT_BRACE)) {
+            commaOpDisabled = false;
+            body = blockStmt();
+        } else {
+            Expr expr = expression();
+            body = new Stmt.Return(expr);
+        }
+
+        commaOpDisabled = false;
+        return new Expr.Function(parameters, body);
     }
 
     private Expr comma() {

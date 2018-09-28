@@ -14,6 +14,7 @@ abstract class Expr {
         T visitAssignExpr(Assign expr);
         T visitOrExpr(Or expr);
         T visitAndExpr(And expr);
+        T visitFunctionExpr(Function expr);
     }
 
     abstract <T> T accept(Visitor<T> visitor);
@@ -165,6 +166,21 @@ abstract class Expr {
         @Override
         <T> T accept(Visitor<T> visitor) {
             return visitor.visitAndExpr(this);
+        }
+    }
+
+    static class Function extends Expr {
+        final List<Token> parameters;
+        final Stmt body;
+
+        Function(List<Token> parameters, Stmt body) {
+            this.parameters = parameters;
+            this.body = body;
+        }
+
+        @Override
+        <T> T accept(Visitor<T> visitor) {
+            return visitor.visitFunctionExpr(this);
         }
     }
 }
