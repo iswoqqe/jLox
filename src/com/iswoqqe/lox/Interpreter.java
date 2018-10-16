@@ -1,14 +1,15 @@
 package com.iswoqqe.lox;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    private final Environment builtins = new Environment();
-    private Environment environment = builtins;
+    private final Map<String, Variable> globals = new HashMap<>();
 
     Interpreter() {
-        builtins.define("clock", new Callable() {
+        globals.put("clock", new Variable(new Callable() {
             @Override
             public Object call(Interpreter interpreter, List<Object> arguments) {
                 return (double) System.currentTimeMillis() / 1000;
@@ -23,12 +24,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             public String toString() {
                 return "<native fn: clock()>";
             }
-        });
+        }));
 
-        builtins.define("print", new Callable() {
+        globals.put("print", new Variable(new Callable() {
             @Override
             public Object call(Interpreter interpreter, List<Object> arguments) {
-                System.out.println(stringify(arguments.get(0)));
+                if (arguments.get(0) == null) {
+                    System.out.println("nil");
+                } else {
+                    System.out.println(arguments.get(0).toString());
+                }
                 return null;
             }
 
@@ -41,7 +46,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             public String toString() {
                 return "<native fn: print()>";
             }
-        });
+        }));
     }
 
     void interpret(List<Stmt> statements) {
@@ -54,6 +59,25 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
+    void interpret(Stmt statement) {
+        try {
+            execute(statement);
+        } catch (RuntimeError error) {
+            Lox.runtimeError(error);
+        }
+    }
+
+    void defineNewGlobals(Map<String, Variable> newGlobals) {
+        for (Map.Entry<String, Variable> entry : newGlobals.entrySet()) {
+            globals.put(entry.getKey(), entry.getValue());
+        }
+    }
+
+    Map<String, Variable> getGlobalsRef() {
+        return globals;
+    }
+
+    /*
     void interpretInEnvironment(Stmt stmt, Environment environment) {
         Environment previous = this.environment;
         this.environment = environment;
@@ -66,6 +90,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             this.environment = previous;
         }
     }
+    */
 
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
@@ -99,16 +124,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
-        Environment previous = this.environment;
-
-        try {
-            this.environment = new Environment(previous);
-
-            for (Stmt statement : stmt.statements) {
-                execute(statement);
-            }
-        } finally {
-            this.environment = previous;
+        for (Stmt statement : stmt.statements) {
+            execute(statement);
         }
 
         return null;
@@ -116,10 +133,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
-        /*if (enviroment.isDefined(var.name)) {
-            throw new RuntimeError(var.name, "Redefinition of vars not allowed.");
-        }*/
-        environment.define(stmt.name, evaluate(stmt.initializer));
+        stmt.resolved.value = evaluate(stmt.initializer);
         return null;
     }
 
@@ -138,7 +152,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitFunctionExpr(Expr.Function expr) {
-        return new Function(environment, expr.parameters, expr.body);
+        return new Function(expr);
     }
 
     @Override
@@ -188,15 +202,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
-        Object val = evaluate(expr.value);
-
-        environment.assign(expr.name, val);
-        return null;
+        expr.resolved.value = evaluate(expr.value);
+        return expr.resolved.value;
     }
 
     @Override
     public Object visitVarExpr(Expr.Var expr) {
-        return environment.get(expr.name);
+        return expr.resolved.value;
     }
 
     @Override

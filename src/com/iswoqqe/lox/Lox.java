@@ -78,6 +78,16 @@ public class Lox {
             return;
         }
 
+        Resolver resolver = new Resolver(statements, interpreter.getGlobalsRef());
+        resolver.resolve();
+
+        if (hadError) {
+            System.out.println("Resolve error.");
+            return;
+        }
+
+        interpreter.defineNewGlobals(resolver.getNewGlobalsRef());
+
         ASTPrinter printer = new ASTPrinter();
         for (Stmt stmt : statements) {
             System.out.println(printer.getString(stmt));

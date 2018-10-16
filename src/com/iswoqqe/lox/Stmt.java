@@ -43,10 +43,12 @@ abstract class Stmt {
 
     static class Var extends Stmt {
         final Token name;
+        Variable resolved;
         final Expr initializer;
 
-        Var(Token name, Expr initializer) {
+        Var(Token name, Variable resolved, Expr initializer) {
             this.name = name;
+            this.resolved = resolved;
             this.initializer = initializer;
         }
 

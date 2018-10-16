@@ -7,7 +7,6 @@ import java.util.List;
 class Parser {
     private static class ParseError extends RuntimeException {}
     private boolean parsingVars = false;
-    private boolean commaOpDisabled = false;
 
     private final List<Token> tokens;
     private int current = 0;
@@ -35,7 +34,6 @@ class Parser {
             return statement();
         } catch (ParseError e) {
             parsingVars = false;
-            commaOpDisabled = false;
             synchronize();
             return null;
         }
@@ -43,31 +41,27 @@ class Parser {
 
     private Stmt funcDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expected function name in function declaration.");
-        Expr function = function();
-        if (!(((Expr.Function) function).body instanceof Stmt.Block)) {
-            consume(TokenType.SEMICOLON, "Expected ';' after function expression (comma operator disabled in function expressions).");
-        }
-        return new Stmt.Var(name, function);
+        Expr.Function fn = (Expr.Function) function(true);
+        return new Stmt.Var(name, null, fn);
     }
 
     private Stmt varDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expected variable name.");
         Expr initializer = new Expr.Literal(null);
 
-        commaOpDisabled = true;
         parsingVars = false;
 
         if (match(TokenType.EQUAL)) {
-            initializer = expression();
+            initializer = expression(true);
         }
 
-        if (!match(TokenType.COMMA)) {
+        if (match(TokenType.COMMA)) {
+            parsingVars = true;
+        } else {
             consume(TokenType.SEMICOLON, "Expected ';' after var statement");
-            commaOpDisabled = false;
         }
 
-        parsingVars = true;
-        return new Stmt.Var(name, initializer);
+        return new Stmt.Var(name, null, initializer);
     }
 
     private Stmt statement() {
@@ -196,17 +190,27 @@ class Parser {
     }
 
     private Expr expression() {
+        return expression(false);
+    }
+
+    private Expr expression(boolean disableComma) {
         if (match(TokenType.FN)) {
             return function();
+        }
+        if (disableComma) {
+            return assignment();
         }
         return comma();
     }
 
     private Expr function() {
+        return function(false);
+    }
+
+    private Expr function(boolean isDeclaration) {
         consume(TokenType.LEFT_PAREN, "Expected '(' in function expression.");
         List<Token> parameters = new ArrayList<>();
 
-        commaOpDisabled = true;
         if (!check(TokenType.RIGHT_PAREN)) {
             do {
                 parameters.add(consume(TokenType.IDENTIFIER,
@@ -216,26 +220,27 @@ class Parser {
 
         consume(TokenType.RIGHT_PAREN, "Expected ')' after function parameters.");
 
-        Stmt body;
+        List<Stmt> body = new ArrayList<>();
 
         if (match(TokenType.LEFT_BRACE)) {
-            commaOpDisabled = false;
-            body = blockStmt();
+            while (!isAtEnd() && !check(TokenType.RIGHT_BRACE)) {
+                body.add(declaration());
+            }
+
+            consume(TokenType.RIGHT_BRACE, "Expected '}' to finish function block.");
         } else {
-            Expr expr = expression();
-            body = new Stmt.Return(expr);
+            Expr expr = expression(true);
+            if (isDeclaration) {
+                consume(TokenType.SEMICOLON, "Expected ';' after single expression function declaration.");
+            }
+            body.add(new Stmt.Return(expr));
         }
 
-        commaOpDisabled = false;
-        return new Expr.Function(parameters, body);
+        return new Expr.Function(parameters, Arrays.asList(new Variable[parameters.size()]), body);
     }
 
     private Expr comma() {
         Expr expr = assignment();
-
-        if (commaOpDisabled) {
-            return expr;
-        }
 
         while (match(TokenType.COMMA)) {
             Token operator = previous();
@@ -255,7 +260,7 @@ class Parser {
 
             if (expr instanceof Expr.Var) {
                 Token name = ((Expr.Var) expr).name;
-                return new Expr.Assign(name, value);
+                return new Expr.Assign(name, null, value);
             }
 
             error(equals, "Invalid assignment target.");
@@ -370,11 +375,9 @@ class Parser {
     private Expr finishCall(Expr callee) {
         List<Expr> arguments = new ArrayList<>();
         if (!check(TokenType.RIGHT_PAREN)) {
-            commaOpDisabled = true;
             do {
-                arguments.add(expression());
+                arguments.add(expression(true));
             } while (match(TokenType.COMMA));
-            commaOpDisabled = false;
         }
 
         Token paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
@@ -398,7 +401,7 @@ class Parser {
         }
 
         if (match(TokenType.IDENTIFIER)) {
-            return new Expr.Var(previous());
+            return new Expr.Var(previous(), null);
         }
 
         if (match(TokenType.COMMA, TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL, TokenType.LESS, TokenType.GREATER,

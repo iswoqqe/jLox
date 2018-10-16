@@ -56,11 +56,9 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitFunctionExpr(Expr.Function expr) {
         StringBuilder builder = new StringBuilder();
-        builder.append("(fn ");
-        builder.append(" [");
+        builder.append("(fn [");
 
         boolean first = true;
-
         for (Token param : expr.parameters) {
             if (!first) {
                 builder.append(", ");
@@ -70,7 +68,15 @@ class ASTPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         }
 
         builder.append("] ");
-        builder.append(getString(expr.body));
+
+        first = true;
+        for (Stmt stmt : expr.body) {
+            if (!first) {
+                builder.append(' ');
+            }
+            builder.append(getString(stmt));
+            first = false;
+        }
         builder.append(')');
 
         return builder.toString();

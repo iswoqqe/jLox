@@ -113,9 +113,11 @@ abstract class Expr {
 
     static class Var extends Expr {
         final Token name;
+        Variable resolved;
 
-        Var(Token name) {
+        Var(Token name, Variable resolved) {
             this.name = name;
+            this.resolved = resolved;
         }
 
         @Override
@@ -126,10 +128,12 @@ abstract class Expr {
 
     static class Assign extends Expr {
         final Token name;
+        Variable resolved;
         final Expr value;
 
-        Assign(Token name, Expr value) {
+        Assign(Token name, Variable resolved, Expr value) {
             this.name = name;
+            this.resolved = resolved;
             this.value = value;
         }
 
@@ -171,10 +175,12 @@ abstract class Expr {
 
     static class Function extends Expr {
         final List<Token> parameters;
-        final Stmt body;
+        List<Variable> resolved;
+        final List<Stmt> body;
 
-        Function(List<Token> parameters, Stmt body) {
+        Function(List<Token> parameters, List<Variable> resolved, List<Stmt> body) {
             this.parameters = parameters;
+            this.resolved = resolved;
             this.body = body;
         }
 

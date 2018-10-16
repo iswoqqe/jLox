@@ -3,26 +3,22 @@ package com.iswoqqe.lox;
 import java.util.List;
 
 public class Function implements Callable {
-    private final Environment closure;
-    private final List<Token> params;
-    private final Stmt body;
+    private final Expr.Function definition;
 
-    Function(Environment closure, List<Token> params, Stmt body) {
-        this.closure = closure;
-        this.params = params;
-        this.body = body;
+    Function(Expr.Function definition) {
+        this.definition = definition;
     }
 
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
-        Environment environment = new Environment(closure);
+        // interpreter should only pass arguments list of correct size
 
-        for (int i = 0; i < params.size(); ++i) {
-            environment.define(params.get(i), arguments.get(i));
+        for (int i = 0; i < definition.parameters.size(); ++i) {
+            definition.resolved.get(i).value = arguments.get(i);
         }
 
         try {
-            interpreter.interpretInEnvironment(body, environment);
+            interpreter.interpret(definition.body);
         } catch (Return ret) {
             return ret.value;
         }
@@ -32,7 +28,7 @@ public class Function implements Callable {
 
     @Override
     public int arity() {
-        return params.size();
+        return definition.parameters.size();
     }
 
     @Override
@@ -42,7 +38,7 @@ public class Function implements Callable {
 
         boolean first = true;
 
-        for (Token param : params) {
+        for (Token param : definition.parameters) {
             if (!first) {
                 builder.append(", ");
             }
